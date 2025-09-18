@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  role          Role     @default(STUDENT)
+  createdAt     DateTime @default(now())
+  student       Student?
+  faculty       Faculty?
+}
+
+model Student {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id])
+  regNo     String  @unique
+  name      String
+  phone     String
+  year      String
+  branch    String
+  section   String
+  enrollments Enrollment[]
+  attendance  AttendanceRecord[]
+}
+
+model Faculty {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id])
+  name      String
+  department String
+  classes   Class[]
+}
+
+model Course {
+  id      String  @id @default(cuid())
+  code    String  @unique
+  name    String
+  branch  String
+  year    String
+  classes Class[]
+}
+
+model Class {
+  id         String   @id @default(cuid())
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id])
+  section    String
+  facultyId  String
+  faculty    Faculty  @relation(fields: [facultyId], references: [id])
+  enrollments Enrollment[]
+  sessions     Session[]
+}
+
+model Enrollment {
+  id        String  @id @default(cuid())
+  classId   String
+  class     Class   @relation(fields: [classId], references: [id])
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id])
+  date      DateTime
+  periodNo  Int
+  startTime DateTime
+  endTime   DateTime
+  status    SessionStatus @default(OPEN)
+  location  String?  // Expected location name
+  latitude  Float?   // Expected latitude
+  longitude Float?   // Expected longitude
+  radius    Float?   // Allowed radius in meters (default 100m)
+  records   AttendanceRecord[]
+}
+
+model AttendanceRecord {
+  id         String   @id @default(cuid())
+  sessionId  String
+  session    Session  @relation(fields: [sessionId], references: [id])
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id])
+  status     AttendanceStatus
+  method     AttendanceMethod
+  markedAt   DateTime @default(now())
+  latitude   Float?   // Student's location when marked
+  longitude  Float?   // Student's location when marked
+
+  @@unique([sessionId, studentId], name: "sessionId_studentId")
+}
+
+enum Role {
+  STUDENT
+  FACULTY
+  ADMIN
+}
+
+enum SessionStatus {
+  OPEN
+  CLOSED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum AttendanceMethod {
+  FACE
+  BIOMETRIC
+  MANUAL
+}
+
+
